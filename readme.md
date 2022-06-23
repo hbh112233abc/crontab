@@ -73,5 +73,5 @@ go build -ldflags "-X 'main.version=$(git rev-parse --short HEAD)'" .
 ```
 > 无窗口模式
 ```
-go build -ldflags "-H windowsgui"
+go build -ldflags "-X 'main.version=$(git rev-parse --short HEAD)' -H windowsgui" .
 ```
