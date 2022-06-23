@@ -67,6 +67,11 @@ func main() {
         return
     }
 
+    if len(tasks) == 0 {
+        fmt.Println("no tasks configured")
+        return
+    }
+
     c := cron.New()
     for _, t := range tasks {
         fmt.Println(t)
