@@ -38,7 +38,8 @@ const (
 `
 )
 
-var version = "1.0.0"
+const MAIN_VERSION = "1.0.0"
+var version = "dev"
 
 type RunJob struct {
     cmd string
@@ -51,7 +52,7 @@ func (r *RunJob) Run() {
 func main() {
     args := os.Args
     if len(args) > 1 && (args[1] == "-v" || args[1] == "--version"){
-        fmt.Println("Crontab Version:",version)
+        fmt.Printf("Crontab Version:%s[%s]",MAIN_VERSION,version)
         return
     }
     if len(args) > 1 && (args[1] == "-h" || args[1] == "--help"){
@@ -105,7 +106,7 @@ func Config(filePth string) ([]string, error) {
         if _, err := os.Stat(filePth); os.IsNotExist(err) {
             MakeConfigTemplate(filePth)
         }
-        fmt.Println("Please setting config <config.cfg>")
+        fmt.Println("Please Setting Config: <config.cfg>")
         return nil,err
     }
     defer f.Close()

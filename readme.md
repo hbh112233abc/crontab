@@ -14,6 +14,8 @@ Hours        | Yes        | 0-23            | * / , -
 Day of month | Yes        | 1-31            | * / , - ?
 Month        | Yes        | 1-12 or JAN-DEC | * / , -
 Day of week  | Yes        | 0-6 or SUN-SAT  | * / , - ?
+
+
 Note: Month and Day-of-week field values are case insensitive. "SUN", "Sun", and "sun" are equally accepted.
 
 Special Characters ¶
@@ -67,7 +69,7 @@ Entry                  | Description                                | Equivalent
 ## 编译
 > 有窗口,可以用来调试
 ```
-go build
+go build -ldflags "-X 'main.version=$(git rev-parse --short HEAD)'" .
 ```
 > 无窗口模式
 ```
