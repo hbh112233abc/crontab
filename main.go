@@ -3,7 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"os/exec"
 	"runtime"
@@ -19,22 +19,23 @@ const (
     UTF8    = Charset("UTF-8")
     GB18030 = Charset("GB18030")
     HELP = `
-# 分   时   日   月   周 命令行
-# -    -    -    -    -
-# |    |    |    |    |
-# |    |    |    |    +----- 星期中星期几 (0-6) (星期天为0)
-# |    |    |    +---------- 月份 (1-12)
-# |    |    +--------------- 一个月中的第几天 (1-31)
-# |    +-------------------- 小时 (0-23)
-# +------------------------- 分钟 (0-59)
+# 秒 分 时 日 月 周 命令行
+# -  -  -  -  -  -
+# |  |  |  |  |  |
+# |  |  |  |  |  +---- 星期中星期几 (0-6) (星期天为0)
+# |  |  |  |  +------- 月份 (1-12)
+# |  |  |  +---------- 一个月中的第几天 (1-31)
+# |  |  +------------- 小时 (0-23)
+# |  +---------------- 分钟 (0-59)
+# +------------------- 秒 (0-59)
 #
 # * 时表示每单位时间都要执行
 # a-b 时表示从第 a 单位时间到第 b 单位时间这段时间内要执行
 # */n 时表示每 n 单位时间个时间间隔执行一次
 # a, b, c,... 时表示第 a, b, c,... 单位时间要执行
 #
-# 示例:每5分钟执行bat批处理
-# */5 * * * * d:/subversion/update.bat
+# 示例:每5秒执行bat批处理
+# */5 * * * * * d:/subversion/update.bat
 `
 )
 
@@ -58,7 +59,7 @@ func main() {
     if len(args) > 1 && (args[1] == "-h" || args[1] == "--help"){
         fmt.Println("Crontab Help")
         fmt.Println("Setting config.cfg like:")
-        fmt.Println(HELP)
+        fmt.Printf(HELP)
         return
     }
     tasks, err := Config("./config.cfg")
@@ -72,34 +73,45 @@ func main() {
         return
     }
 
-    c := cron.New()
+    // 创建 Cron 实例时同时指定秒级精度
+    c := cron.New(cron.WithSeconds())
+
     for _, t := range tasks {
         fmt.Println(t)
         params := strings.Split(t," ")
         Task(c,params)
     }
     c.Start()
+    defer c.Stop()
+
+    // 阻塞主 goroutine
     select {}
 }
 
 func Task(c *cron.Cron, params []string) error {
     time := params[0:6]
-    timeStr := strings.Join(time, ", ")
+    timeStr := strings.Join(time, " ")
     // fmt.Println(timeStr)
-
     cmd := strings.Join(params[6:]," ")
     // fmt.Println(cmd)
 
     j := &RunJob{
         cmd:cmd,
     }
-    c.AddJob(timeStr,j)
+	// 启动时先执行一次
+	j.Run()
+    id,err := c.AddJob(timeStr,j)
+	if err != nil {
+		fmt.Printf("添加任务失败:%v | 表达式: %s \n",err,timeStr)
+		return err
+	}
+	fmt.Printf("任务添加成功 ID:%d \n", id)
     return nil
 }
 
 func MakeConfigTemplate(filePth string) {
     cfg := strings.Replace(HELP,"\n","",1) //去除句首空行
-    err := ioutil.WriteFile(filePth, []byte(cfg), 0666) //写入文件(字节数组)
+    err := os.WriteFile(filePth, []byte(cfg), 0666) //写入文件(字节数组)
     if err != nil {
         fmt.Println(err.Error())
     }
@@ -115,7 +127,7 @@ func Config(filePth string) ([]string, error) {
         return nil,err
     }
     defer f.Close()
-    conf, _ := ioutil.ReadAll(f)
+    conf, _ := io.ReadAll(f)
     conf_string := string(conf)
     tasks := strings.Split(conf_string,"\n")
     var result []string
